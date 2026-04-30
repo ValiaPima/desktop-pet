@@ -11,9 +11,20 @@ DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 DEEPSEEK_MODEL = "deepseek-chat"
 
 # 窗口设置
-WINDOW_WIDTH = 200
-WINDOW_HEIGHT = 200
-WINDOW_ALPHA = 0.95  # 窗口透明度
+WINDOW_WIDTH = 220
+WINDOW_HEIGHT = 320
+WINDOW_ALPHA = 0.95
+
+# 窗口吸附
+DOCK_THRESHOLD = 20       # 距离边缘多少像素触发吸附
+DOCK_HIDE_PERCENT = 0.15  # 吸附后露出比例
+
+# 全局快捷键
+HOTKEY_CHAT = "Ctrl+Shift+P"
+HOTKEY_QUIT = "Ctrl+Shift+Q"
+
+# 自动睡眠
+AUTO_SLEEP_AFTER = 300    # 用户无操作多少秒后自动睡眠（5分钟）
 
 # 动画设置
 ANIMATION_FPS = 12

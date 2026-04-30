@@ -10,22 +10,13 @@ from pet.memory import PetMemory
 
 
 class PetState(Enum):
-    """宠物的宏观状态"""
-    FREE = "free"       # 自由活动
-    INTERACTING = "interacting"  # 正在与主人互动
-    SLEEPING = "sleeping"  # 睡觉
+    FREE = "free"
+    INTERACTING = "interacting"
+    SLEEPING = "sleeping"
 
 
 class PetBrain:
-    """宠物 AI 大脑。
-
-    工作流程:
-    1. 定时调用 LLM 做行为决策
-    2. 解析返回的 action/emotion/dialogue
-    3. 映射到 AnimationState 驱动动画
-    4. 处理用户输入（文字/点击）
-    5. 管理记忆系统
-    """
+    """宠物 AI 大脑。"""
 
     def __init__(self, sprite: SimpleSprite):
         self.sprite = sprite
@@ -34,28 +25,29 @@ class PetBrain:
         self.state = PetState.FREE
         self.emotion = "neutral"
         self.last_behavior_time = 0
-        self._next_behavior_delay = 0  # 动态计算的下一次间隔
+        self._next_behavior_delay = 0
         self.last_interaction_time = time.time()
         self.conversation_active = False
         self.pending_dialogue: str = ""
         self.pending_expression: str = ""
         self.user_idle = False
 
-        # 点击反应的随机语料池 — 不每次调 LLM，节省 API 开销
         self._click_responses = [
-            "嘿嘿~",
-            "干嘛呀~",
-            "别戳了！",
-            "嗯？",
-            "摸摸头~",
-            "痒！",
-            "再摸要收费了！",
-            "呼噜呼噜~",
+            "嘿嘿~", "干嘛呀~", "别戳了！", "嗯？",
+            "摸摸头~", "痒！", "再摸要收费了！", "呼噜呼噜~",
+            "再摸就生气了！", "嘿嘿嘿~",
         ]
 
     def update(self, current_time: float, user_activity: str = "未知"):
-        """主循环更新 - 定时做行为决策。"""
+        """主循环更新。"""
         self.sprite.update()
+
+        # 睡眠状态 —— 不决策，只显示 Zzz
+        if self.state == PetState.SLEEPING:
+            if self.sprite.state != AnimationState.SLEEP:
+                self.sprite.set_state(AnimationState.SLEEP)
+            self.emotion = "sleepy"
+            return
 
         if self.state == PetState.INTERACTING:
             return
@@ -63,10 +55,8 @@ class PetBrain:
         self.user_idle = (current_time - self.last_interaction_time) > 120
 
         if self._next_behavior_delay == 0:
-            # 首次启动，等一段时间再开口
-            self._next_behavior_delay = current_time + random.uniform(30, 60)
+            self._next_behavior_delay = current_time + random.uniform(60, 120)
         elif current_time > self._next_behavior_delay:
-            # 加上随机 jitter，避免每次都准时
             jitter = random.uniform(-BEHAVIOR_INTERVAL_JITTER, BEHAVIOR_INTERVAL_JITTER)
             self._next_behavior_delay = current_time + BEHAVIOR_INTERVAL_BASE + jitter
             self._decide_behavior(user_activity)
@@ -81,12 +71,10 @@ class PetBrain:
             "user_activity": user_activity,
             "last_interaction": f"{int((time.time() - self.last_interaction_time) / 60)} 分钟前",
         }
-
         decision = self.llm.decide_behavior(context)
         self._apply_decision(decision)
 
     def _apply_decision(self, decision: dict):
-        """将 LLM 决策应用到宠物状态。"""
         action = decision.get("action", "idle")
         emotion = decision.get("emotion", "neutral")
         dialogue = decision.get("dialogue", "")
@@ -95,56 +83,57 @@ class PetBrain:
         self.emotion = emotion
         self.pending_expression = expression
 
-        # 映射 action 到 AnimationState
         action_map = {
-            "idle": AnimationState.IDLE,
-            "walk": AnimationState.WALK,
-            "sleep": AnimationState.SLEEP,
-            "play": AnimationState.PLAY,
-            "excited": AnimationState.EXCITED,
-            "curious": AnimationState.CURIOUS,
-            "comfort": AnimationState.COMFORT,
-            "talk": AnimationState.TALK,
+            "idle": AnimationState.IDLE, "walk": AnimationState.WALK,
+            "sleep": AnimationState.SLEEP, "play": AnimationState.PLAY,
+            "excited": AnimationState.EXCITED, "curious": AnimationState.CURIOUS,
+            "comfort": AnimationState.COMFORT, "talk": AnimationState.TALK,
         }
-
-        anim_state = action_map.get(action, AnimationState.IDLE)
-        self.sprite.set_state(anim_state)
+        self.sprite.set_state(action_map.get(action, AnimationState.IDLE))
 
         if dialogue:
             self.pending_dialogue = dialogue
-
-        # 如果行动是 walk，在窗口范围内随机移动
         if action == "walk":
             self.sprite.wander(WINDOW_WIDTH, WINDOW_HEIGHT)
 
     def handle_user_input(self, text: str) -> str:
-        """处理用户输入的文字，返回宠物的回复。"""
         self.last_interaction_time = time.time()
-        self.state = PetState.INTERACTING
+        # 睡觉时说话会叫醒
+        if self.state == PetState.SLEEPING:
+            self.state = PetState.INTERACTING
+            self.sprite.set_state(AnimationState.IDLE)
+            self.emotion = "curious"
+            self.pending_expression = "揉眼睛"
+            self.pending_dialogue = "唔…怎么了？"
+            return "唔…怎么了？"
 
+        self.state = PetState.INTERACTING
         memory_context = self.memory.build_context_prompt()
         decision = self.llm.chat(text, memory_context)
-
         self._apply_decision(decision)
         dialogue = decision.get("dialogue", "嗯？")
-
-        # 记忆 - 提取可能的用户事实
         self._extract_facts(text, dialogue)
         self.memory.add_interaction("user", text)
         self.memory.add_interaction("pet", dialogue, self.emotion)
 
-        # 短暂互动后回到自由状态
         def end_interaction():
             self.state = PetState.FREE
-
         import threading
         threading.Timer(5.0, end_interaction).start()
-
         return dialogue
 
     def handle_click(self):
-        """点击宠物触发抚摸反馈 — 随机反应，不每次都一样。"""
         self.last_interaction_time = time.time()
+        # 睡觉时点击 = 被摸醒
+        if self.state == PetState.SLEEPING:
+            self.state = PetState.FREE
+            self.sprite.set_state(AnimationState.CURIOUS)
+            self.emotion = "curious"
+            self.pending_dialogue = "嗯…谁摸我…"
+            import threading
+            threading.Timer(3.0, lambda: self.sprite.set_state(AnimationState.IDLE)).start()
+            return
+
         self.memory.remember_emotion("被主人抚摸", "happy", 0.6)
         self.sprite.set_state(AnimationState.EXCITED)
         self.emotion = "happy"
@@ -154,20 +143,15 @@ class PetBrain:
         def end_interaction():
             self.state = PetState.FREE
             self.sprite.set_state(AnimationState.IDLE)
-
         import threading
         threading.Timer(3.0, end_interaction).start()
 
     def _extract_facts(self, user_text: str, pet_response: str):
-        """简单的事实提取 - 后续可以用 LLM 做更精确的提取。"""
         patterns = [
-            ("喜欢", "喜欢"),
-            ("最爱", "最爱"),
-            ("不喜欢", "不喜欢"),
-            ("我叫", "名字"),
+            ("喜欢", "喜欢"), ("最爱", "最爱"),
+            ("不喜欢", "不喜欢"), ("我叫", "名字"),
             ("我是", "身份"),
         ]
-
         for keyword, fact_key in patterns:
             if keyword in user_text:
                 idx = user_text.find(keyword)

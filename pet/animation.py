@@ -27,8 +27,8 @@ class SimpleSprite:
         self.state = state
         self.frame = 0
         self.total_frames = self._frames_for_state(state)
-        self.x = 100
-        self.y = 100
+        self.x = 110
+        self.y = 180
         self.target_x: Optional[float] = None
         self.target_y: Optional[float] = None
         self.eye_blink_timer = 0
@@ -39,9 +39,9 @@ class SimpleSprite:
         if self._pixmap.isNull():
             print(f"[PET] 未找到精灵图: {sprite_path}，使用 fallback 颜色块")
         else:
-            # 缩放至窗口适合大小 — 正方形图片按宽高较小值适配
+            # 缩放至窗口适合大小
             self._pixmap = self._pixmap.scaled(
-                180, 180,
+                140, 200,
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
