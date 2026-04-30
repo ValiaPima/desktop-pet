@@ -113,7 +113,8 @@ class PetWindow(QMainWindow):
         self.sprite = SimpleSprite()
         self.brain = PetBrain(self.sprite)
         self.sensor = DesktopSensor()
-        self.voice = VoiceOutput()
+        self.voice = VoiceOutput(parent=self)
+        self._drag_pos = None
 
         # 宠物绘制
         self.pet_widget = PetWidget(self.brain, self)
@@ -213,8 +214,9 @@ class PetWindow(QMainWindow):
         pass
 
     def mousePressEvent(self, event):
-        """点击宠物触发交互。"""
+        """点击宠物触发交互 / 拖拽记录起点。"""
         if not self._click_through:
+            self._drag_pos = event.globalPosition().toPoint()
             self.brain.handle_click()
             self.pet_widget.show_bubble("摸～")
             self.sensor.poke()

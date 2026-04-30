@@ -18,8 +18,8 @@ from pet.window import PetWindow
 def main():
     # 检查 API key
     if not os.getenv("DEEPSEEK_API_KEY"):
-        print("⚠️  请先设置环境变量: export DEEPSEEK_API_KEY='your-key'")
-        print("   也可以临时传入: DEEPSEEK_API_KEY=xxx python main.py")
+        print("[!] 请先设置环境变量: export DEEPSEEK_API_KEY='your-key'")
+        print("    也可以临时传入: DEEPSEEK_API_KEY=xxx python main.py")
 
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)  # 允许后台运行
