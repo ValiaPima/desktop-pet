@@ -2,7 +2,7 @@
 import time
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QTimer, QPoint
+from PyQt6.QtCore import Qt, QTimer, QPoint, QRect
 from PyQt6.QtGui import QPainter, QColor, QFont, QAction, QIcon
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QMenu,
@@ -25,11 +25,8 @@ class PetWidget(QWidget):
         self.bubble_text: Optional[str] = None
         self.bubble_timer = 0
 
-    def show_bubble(self, text: str, duration_frames: int = 60):
+    def show_bubble(self, text: str, duration_frames: int = 90):
         """显示对话气泡。"""
-        max_width = 20
-        if len(text) > max_width:
-            text = text[:max_width] + "…"
         self.bubble_text = text
         self.bubble_timer = duration_frames
 
@@ -62,32 +59,76 @@ class PetWidget(QWidget):
             )
 
     def _draw_bubble(self, painter, sprite):
-        """绘制对话框气泡。"""
-        painter.setPen(QColor(255, 255, 255, 220))
-        painter.setBrush(QColor(255, 255, 255, 220))
+        """绘制对话框气泡 — 自适应宽度 + 自动换行。"""
+        text = self.bubble_text or ""
+        if not text:
+            return
 
-        bubble_x = int(sprite.x - 35)
-        bubble_y = int(sprite.y - 60)
-        bubble_w = 70
-        bubble_h = 25
-
-        painter.drawRoundedRect(bubble_x, bubble_y, bubble_w, bubble_h, 8, 8)
-
-        # 小三角
-        painter.drawPolygon(
-            QPoint(int(sprite.x - 2), bubble_y + bubble_h),
-            QPoint(int(sprite.x + 2), bubble_y + bubble_h),
-            QPoint(int(sprite.x), bubble_y + bubble_h + 5),
-        )
-
-        painter.setPen(QColor(50, 50, 50))
         font = QFont("Microsoft YaHei", 9)
         painter.setFont(font)
-        painter.drawText(
-            bubble_x, bubble_y, bubble_w, bubble_h,
-            Qt.AlignmentFlag.AlignCenter,
-            self.bubble_text or "",
+
+        # 测量文字，决定换行
+        fm = painter.fontMetrics()
+        char_width = fm.horizontalAdvance("中")  # 一个中文字符的宽度
+        max_chars_per_line = 12
+        max_px_width = char_width * max_chars_per_line + 16  # 留 padding
+
+        # 按宽度折行
+        lines = []
+        current_line = ""
+        for ch in text:
+            test_line = current_line + ch
+            if fm.horizontalAdvance(test_line) > max_px_width and current_line:
+                lines.append(current_line)
+                current_line = ch
+            else:
+                current_line = test_line
+        if current_line:
+            lines.append(current_line)
+
+        # 限制最多显示 3 行，超出加 "..."
+        if len(lines) > 3:
+            lines = lines[:3]
+            if not lines[-1].endswith("…"):
+                lines[-1] = lines[-1][:-1] + "…"
+
+        # 计算气泡尺寸
+        max_line_width = max(fm.horizontalAdvance(l) for l in lines)
+        bubble_w = max(max_line_width + 24, 40)
+        line_height = fm.height() + 4
+        bubble_h = line_height * len(lines) + 12
+
+        # 居中于 sprite 上方
+        bubble_x = int(sprite.x - bubble_w // 2)
+        bubble_y = int(sprite.y - 55 - bubble_h)
+
+        # 背景
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(255, 255, 255, 230))
+        painter.drawRoundedRect(bubble_x, bubble_y, bubble_w, bubble_h, 8, 8)
+
+        # 小三角（指向下方）
+        triangle_y = bubble_y + bubble_h
+        painter.drawPolygon(
+            QPoint(int(sprite.x - 5), triangle_y),
+            QPoint(int(sprite.x + 5), triangle_y),
+            QPoint(int(sprite.x), triangle_y + 6),
         )
+
+        # 文字
+        painter.setPen(QColor(40, 40, 40))
+        text_rect_x = bubble_x + 12
+        text_rect_y = bubble_y + 6
+        label_width = bubble_w - 24
+        for i, line in enumerate(lines):
+            painter.drawText(
+                text_rect_x,
+                text_rect_y + i * line_height,
+                label_width,
+                line_height,
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                line,
+            )
 
 
 class PetWindow(QMainWindow):

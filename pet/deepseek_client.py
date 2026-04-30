@@ -1,10 +1,19 @@
 """DeepSeek API 客户端 - 驱动宠物的「大脑」"""
 import json
+import logging
+import sys
 from typing import Optional
 
 import httpx
 
 from config import DEEPSEEK_API_KEY, DEEPSEEK_API_URL, DEEPSEEK_MODEL
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="[PET] %(levelname)s %(message)s",
+    stream=sys.stderr,
+)
+log = logging.getLogger("deepseek")
 
 
 class DeepSeekClient:
@@ -71,10 +80,11 @@ class DeepSeekClient:
             content = resp.json()["choices"][0]["message"]["content"]
             return self._parse_response(content)
         except Exception as e:
+            log.error("API 调用失败: %s", e)
             return {
                 "action": "idle",
                 "emotion": "neutral",
-                "dialogue": f"...（信号不好）",
+                "dialogue": f"…",
                 "expression": "困惑地歪着头",
             }
 

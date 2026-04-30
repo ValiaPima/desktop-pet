@@ -17,7 +17,7 @@ class VoiceOutput(QObject):
     QMediaPlayer 负责静默播放（不弹任何外部播放器窗口）。
     """
 
-    def __init__(self, voice: str = "zh-CN-XiaoxiaoNeural", parent=None):
+    def __init__(self, voice: str = "zh-CN-XiaoyiNeural", parent=None):
         super().__init__(parent)
         self.voice = voice
         self._enabled = True
