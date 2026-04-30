@@ -100,9 +100,9 @@ class SimpleSprite:
 
     def draw(self, painter, width: int, height: int, emotion: str = "neutral"):
         """用 QPainter 绘制 chibi 动漫少女。"""
-        cx = int(self.x)     # 中心 x
-        cy = int(self.y)     # 中心 y
-        bob = math.sin(self.frame * 0.5) * 2  # 呼吸浮动
+        cx = int(self.x)
+        cy = int(self.y)
+        bob = math.sin(self.frame * 0.5) * 2
 
         painter.setRenderHint(painter.RenderHint.Antialiasing)
 
@@ -139,12 +139,14 @@ class SimpleSprite:
 
     def _draw_face(self, p, cx, cy):
         """脸部椭圆。"""
+        cx, cy = int(cx), int(cy)
         p.setBrush(self.SKIN_COLOR)
         p.setPen(Qt.PenStyle.NoPen)
         p.drawEllipse(QPointF(cx, cy), 20, 22)
 
     def _draw_eyes(self, p, cx, cy, emotion, blinking):
         """紫罗兰色大眼睛。"""
+        cx, cy = int(cx), int(cy)
         if blinking:
             p.setPen(QPen(self.HAIR_DARK, 2))
             p.drawLine(cx - 11, cy - 4, cx - 4, cy - 4)
@@ -184,6 +186,7 @@ class SimpleSprite:
 
     def _draw_mouth(self, p, cx, cy, emotion):
         """根据表情画嘴巴。"""
+        cx, cy = int(cx), int(cy)
         p.setPen(QPen(self.MOUTH_COLOR, 1.5))
         mouth_y = cy + 8
         if emotion in ("happy", "excited"):
@@ -296,6 +299,7 @@ class SimpleSprite:
 
     def _draw_body(self, p, cx, cy, emotion):
         """蓝黑色战斗服 + 黑色肩甲，带呼吸浮动。"""
+        cx, cy = int(cx), int(cy)
         # 躯干 - 蓝黑色战斗服
         body_path = QPainterPath()
         body_path.moveTo(cx - 15, cy)
