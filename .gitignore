@@ -1,0 +1,28 @@
+# API key 配置（不要提交到公开仓库）
+*.bat
+*.sh
+.env
+.env.*
+config_local.py
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# 临时文件
+temp_speech.mp3
+*.mp3
+*.wav
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 数据
+data/

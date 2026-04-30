@@ -3,7 +3,7 @@ import random
 import time
 from enum import Enum
 
-from config import BEHAVIOR_INTERVAL
+from config import BEHAVIOR_INTERVAL_BASE, BEHAVIOR_INTERVAL_JITTER, WINDOW_WIDTH, WINDOW_HEIGHT
 from pet.animation import AnimationState, SimpleSprite
 from pet.deepseek_client import DeepSeekClient
 from pet.memory import PetMemory
@@ -34,11 +34,24 @@ class PetBrain:
         self.state = PetState.FREE
         self.emotion = "neutral"
         self.last_behavior_time = 0
+        self._next_behavior_delay = 0  # 动态计算的下一次间隔
         self.last_interaction_time = time.time()
         self.conversation_active = False
         self.pending_dialogue: str = ""
         self.pending_expression: str = ""
         self.user_idle = False
+
+        # 点击反应的随机语料池 — 不每次调 LLM，节省 API 开销
+        self._click_responses = [
+            "嘿嘿~",
+            "干嘛呀~",
+            "别戳了！",
+            "嗯？",
+            "摸摸头~",
+            "痒！",
+            "再摸要收费了！",
+            "呼噜呼噜~",
+        ]
 
     def update(self, current_time: float, user_activity: str = "未知"):
         """主循环更新 - 定时做行为决策。"""
@@ -49,8 +62,13 @@ class PetBrain:
 
         self.user_idle = (current_time - self.last_interaction_time) > 120
 
-        if current_time - self.last_behavior_time > BEHAVIOR_INTERVAL:
-            self.last_behavior_time = current_time
+        if self._next_behavior_delay == 0:
+            # 首次启动，等一段时间再开口
+            self._next_behavior_delay = current_time + random.uniform(30, 60)
+        elif current_time > self._next_behavior_delay:
+            # 加上随机 jitter，避免每次都准时
+            jitter = random.uniform(-BEHAVIOR_INTERVAL_JITTER, BEHAVIOR_INTERVAL_JITTER)
+            self._next_behavior_delay = current_time + BEHAVIOR_INTERVAL_BASE + jitter
             self._decide_behavior(user_activity)
 
     def _decide_behavior(self, user_activity: str):
@@ -95,9 +113,9 @@ class PetBrain:
         if dialogue:
             self.pending_dialogue = dialogue
 
-        # 如果行动是 walk，随机选个目标位置
+        # 如果行动是 walk，在窗口范围内随机移动
         if action == "walk":
-            self.sprite.wander(400, 300)
+            self.sprite.wander(WINDOW_WIDTH, WINDOW_HEIGHT)
 
     def handle_user_input(self, text: str) -> str:
         """处理用户输入的文字，返回宠物的回复。"""
@@ -125,12 +143,12 @@ class PetBrain:
         return dialogue
 
     def handle_click(self):
-        """点击宠物触发抚摸反馈。"""
+        """点击宠物触发抚摸反馈 — 随机反应，不每次都一样。"""
         self.last_interaction_time = time.time()
         self.memory.remember_emotion("被主人抚摸", "happy", 0.6)
         self.sprite.set_state(AnimationState.EXCITED)
         self.emotion = "happy"
-        self.pending_dialogue = "嘿嘿~"
+        self.pending_dialogue = random.choice(self._click_responses)
         self.state = PetState.INTERACTING
 
         def end_interaction():

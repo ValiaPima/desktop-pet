@@ -259,7 +259,6 @@ class PetWindow(QMainWindow):
         if not self._click_through:
             self._drag_pos = event.globalPosition().toPoint()
             self.brain.handle_click()
-            self.pet_widget.show_bubble("摸～")
             self.sensor.poke()
             super().mousePressEvent(event)
 
