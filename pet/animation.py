@@ -39,9 +39,9 @@ class SimpleSprite:
         if self._pixmap.isNull():
             print(f"[PET] 未找到精灵图: {sprite_path}，使用 fallback 颜色块")
         else:
-            # 缩放至窗口适合大小（保持比例）
+            # 缩放至窗口适合大小 — 正方形图片按宽高较小值适配
             self._pixmap = self._pixmap.scaled(
-                130, 180,
+                180, 180,
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
@@ -105,7 +105,7 @@ class SimpleSprite:
         if not self._pixmap.isNull():
             pw, ph = self._pixmap.width(), self._pixmap.height()
             px = cx - pw // 2
-            py = cy - ph + 20 + int(bob)
+            py = cy - ph // 2 + int(bob)
             painter.drawPixmap(px, py, self._pixmap)
         else:
             # fallback：简单的颜色块

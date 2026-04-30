@@ -47,7 +47,7 @@ class PetWidget(QWidget):
             self._draw_bubble(painter, sprite)
             self.bubble_timer -= 1
 
-        # 表情描述文字（底部小字）- 自适应宽度
+        # 表情描述文字（底部）- 在图片下方
         if self.brain.pending_expression:
             painter.setPen(QColor(100, 100, 100, 180))
             font = QFont("Microsoft YaHei", 8)
@@ -55,7 +55,7 @@ class PetWidget(QWidget):
             fm = painter.fontMetrics()
             text_w = fm.horizontalAdvance(self.brain.pending_expression) + 12
             painter.drawText(
-                int(sprite.x - text_w // 2), int(sprite.y + 40), text_w, 18,
+                int(sprite.x - text_w // 2), int(sprite.y + 95), text_w, 18,
                 Qt.AlignmentFlag.AlignCenter,
                 self.brain.pending_expression,
             )
@@ -100,9 +100,9 @@ class PetWidget(QWidget):
         line_height = fm.height() + 4
         bubble_h = line_height * len(lines) + 12
 
-        # 居中于 sprite 上方
+        # 居中于 sprite 上方（图片高度约 180px，气泡放在图片上面）
         bubble_x = int(sprite.x - bubble_w // 2)
-        bubble_y = int(sprite.y - 55 - bubble_h)
+        bubble_y = int(sprite.y - 100 - bubble_h)
 
         # 背景
         painter.setPen(Qt.PenStyle.NoPen)
