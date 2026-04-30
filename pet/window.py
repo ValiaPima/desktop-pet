@@ -47,13 +47,15 @@ class PetWidget(QWidget):
             self._draw_bubble(painter, sprite)
             self.bubble_timer -= 1
 
-        # 表情描述文字（底部小字）
+        # 表情描述文字（底部小字）- 自适应宽度
         if self.brain.pending_expression:
             painter.setPen(QColor(100, 100, 100, 180))
             font = QFont("Microsoft YaHei", 8)
             painter.setFont(font)
+            fm = painter.fontMetrics()
+            text_w = fm.horizontalAdvance(self.brain.pending_expression) + 12
             painter.drawText(
-                int(sprite.x - 40), int(sprite.y + 40), 80, 20,
+                int(sprite.x - text_w // 2), int(sprite.y + 40), text_w, 18,
                 Qt.AlignmentFlag.AlignCenter,
                 self.brain.pending_expression,
             )
