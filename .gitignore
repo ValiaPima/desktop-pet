@@ -26,3 +26,7 @@ temp_speech.mp3
 
 # 数据
 data/
+
+# 源文件图片（assets/sprites/ 下的才是使用的）
+*.png
+!assets/sprites/*.png
